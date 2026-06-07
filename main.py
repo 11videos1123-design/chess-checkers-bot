@@ -1,13 +1,14 @@
 import os
 import chess
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Faol o'yinlar
+WEBAPP_URL = "https://chess-checkers-2bvsi6j3s-11videos1123-9087s-projects.vercel.app/"
+
 games = {}
 
 def board_to_text(board):
@@ -54,12 +55,15 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("♟️ Shahmat — rejim tanlang:", reply_markup=InlineKeyboardMarkup(keyboard))
 
     elif query.data == "chess_ai":
-        board = chess.Board()
-        games[user_id] = {"board": board, "mode": "ai"}
-        text = board_to_text(board)
-        keyboard = [[InlineKeyboardButton("❌ O'yinni tugatish", callback_data="end_game")]]
+        keyboard = [
+            [InlineKeyboardButton(
+                "♟️ O'ynash — Mini App",
+                web_app=WebAppInfo(url=WEBAPP_URL)
+            )],
+            [InlineKeyboardButton("🔙 Orqaga", callback_data="chess")],
+        ]
         await query.edit_message_text(
-            f"♟️ Shahmat boshlandi! Siz oq tomonsiz.\n\n{text}\n\nYurishingizni yozing (masalan: e2e4)",
+            "🤖 AI bilan o'ynash — quyidagi tugmani bosing:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
@@ -82,34 +86,26 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def move(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
-
     if user_id not in games:
         await update.message.reply_text("O'yin yo'q! /start dan boshlang.")
         return
-
     game = games[user_id]
     board = game["board"]
     user_move = update.message.text.strip()
-
     try:
         chess_move = chess.Move.from_uci(user_move)
         if chess_move in board.legal_moves:
             board.push(chess_move)
-
             if board.is_checkmate():
                 await update.message.reply_text(f"{board_to_text(board)}\n\n🎉 Siz yutdingiz!")
                 del games[user_id]
                 return
-
-            # AI yurishi (oddiy — birinchi legal yurish)
             ai_move = list(board.legal_moves)[0]
             board.push(ai_move)
-
             if board.is_checkmate():
                 await update.message.reply_text(f"{board_to_text(board)}\n\n🤖 AI yutdi!")
                 del games[user_id]
                 return
-
             keyboard = [[InlineKeyboardButton("❌ O'yinni tugatish", callback_data="end_game")]]
             await update.message.reply_text(
                 f"{board_to_text(board)}\n\n🤖 AI yurishi: {ai_move}\nSizning navbatingiz:",
@@ -124,7 +120,6 @@ def main():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button))
-    from telegram.ext import MessageHandler, filters
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, move))
     app.run_polling()
 
