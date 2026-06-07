@@ -17,7 +17,7 @@
             font-family: Arial, sans-serif;
             color: white;
         }
-        h2 { margin-bottom: 10px; font-size: 20px; }
+        h2 { margin-bottom: 10px; font-size: 22px; }
         #status {
             margin-bottom: 10px;
             font-size: 14px;
@@ -26,11 +26,9 @@
         }
         #board {
             display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            width: 320px;
-            height: 320px;
-            border: 3px solid #gold;
-            border-color: #f0a500;
+            grid-template-columns: repeat(8, 40px);
+            grid-template-rows: repeat(8, 40px);
+            border: 3px solid #f0a500;
             border-radius: 4px;
             overflow: hidden;
         }
@@ -40,14 +38,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: 26px;
             cursor: pointer;
-            transition: background 0.2s;
         }
         .white { background: #f0d9b5; }
         .black { background: #b58863; }
         .selected { background: #7fc97f !important; }
-        .possible { background: #7fc9c9 !important; }
         #info {
             margin-top: 12px;
             font-size: 13px;
@@ -65,7 +61,6 @@
             font-weight: bold;
             cursor: pointer;
         }
-        #restart:hover { background: #d4920a; }
     </style>
 </head>
 <body>
@@ -91,15 +86,15 @@ function initGame() {
     gameOver = false;
     selected = null;
     board = [
-    ['bR','bN','bB','bQ','bK','bB','bN','bR'],
-    ['bP','bP','bP','bP','bP','bP','bP','bP'],
-    [null,null,null,null,null,null,null,null],
-    [null,null,null,null,null,null,null,null],
-    [null,null,null,null,null,null,null,null],
-    [null,null,null,null,null,null,null,null],
-    ['wP','wP','wP','wP','wP','wP','wP','wP'],
-    ['wR','wN','wB','wQ','wK','wB','wN','wR'],
-];
+        ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+        ['bP','bP','bP','bP','bP','bP','bP','bP'],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        ['wP','wP','wP','wP','wP','wP','wP','wP'],
+        ['wR','wN','wB','wQ','wK','wB','wN','wR'],
+    ];
     setStatus("Sizning navbatingiz (Oq)");
     renderBoard();
 }
@@ -110,13 +105,18 @@ function renderBoard() {
     for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
             const cell = document.createElement('div');
-            if (piece && piece[0]==='w') cell.style.color = '#fff';
-            if (piece && piece[0]==='b') cell.style.color = '#000';
             cell.className = 'cell ' + ((r+c)%2===0 ? 'white' : 'black');
             cell.dataset.r = r;
             cell.dataset.c = c;
-            if (board[r][c]) cell.textContent = PIECES[board[r][c]] || '';
-            if (selected && selected.r===r && selected.c===c) cell.classList.add('selected');
+            const piece = board[r][c];
+            if (piece) {
+                cell.textContent = PIECES[piece] || '';
+                cell.style.color = piece[0]==='w' ? '#fff' : '#1a1a1a';
+                cell.style.textShadow = piece[0]==='w' ? '1px 1px 2px #000' : '1px 1px 2px #fff';
+            }
+            if (selected && selected.r===r && selected.c===c) {
+                cell.classList.add('selected');
+            }
             cell.onclick = () => onCell(r, c);
             el.appendChild(cell);
         }
@@ -130,7 +130,6 @@ function setStatus(msg) {
 function onCell(r, c) {
     if (gameOver) return;
     const piece = board[r][c];
-
     if (selected) {
         if (selected.r===r && selected.c===c) {
             selected = null;
@@ -142,13 +141,10 @@ function onCell(r, c) {
             renderBoard();
             return;
         }
-        // Yurish
         if (isValidMove(selected.r, selected.c, r, c)) {
             makeMove(selected.r, selected.c, r, c);
             selected = null;
-            if (!gameOver) {
-                setTimeout(aiMove, 400);
-            }
+            if (!gameOver) setTimeout(aiMove, 500);
         } else {
             setStatus("❌ Bu yurish mumkin emas!");
             selected = null;
@@ -172,7 +168,6 @@ function makeMove(fr, fc, tr, tc) {
         setStatus(turn==='w' ? "🎉 Siz yutdingiz!" : "🤖 AI yutdi!");
         return;
     }
-    // Piyoda oxirga yetsa
     if (board[fr][fc]==='wP' && tr===0) board[tr][tc] = 'wQ';
     else if (board[fr][fc]==='bP' && tr===7) board[tr][tc] = 'bQ';
     else board[tr][tc] = board[fr][fc];
@@ -190,7 +185,6 @@ function isValidMove(fr, fc, tr, tc) {
     const dr = tr-fr, dc = tc-fc;
     const type = piece[1];
     const color = piece[0];
-
     if (type==='P') {
         const dir = color==='w' ? -1 : 1;
         const startRow = color==='w' ? 6 : 1;
@@ -220,7 +214,6 @@ function pathClear(fr, fc, tr, tc) {
 function aiMove() {
     if (gameOver) return;
     let best = null;
-    // Barcha mumkin bo'lgan yurishlarni topamiz
     for (let fr=0;fr<8;fr++) for (let fc=0;fc<8;fc++) {
         if (!board[fr][fc] || board[fr][fc][0]!=='b') continue;
         for (let tr=0;tr<8;tr++) for (let tc=0;tc<8;tc++) {
