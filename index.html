@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shahmat</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        h2 { margin-bottom: 10px; font-size: 20px; }
+        #status {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #aaa;
+            min-height: 20px;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            width: 320px;
+            height: 320px;
+            border: 3px solid #gold;
+            border-color: #f0a500;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .white { background: #f0d9b5; }
+        .black { background: #b58863; }
+        .selected { background: #7fc97f !important; }
+        .possible { background: #7fc9c9 !important; }
+        #info {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #ccc;
+            text-align: center;
+        }
+        #restart {
+            margin-top: 14px;
+            padding: 10px 30px;
+            background: #f0a500;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #restart:hover { background: #d4920a; }
+    </style>
+</head>
+<body>
+    <h2>♟️ Shahmat</h2>
+    <div id="status">Sizning navbatingiz (Oq)</div>
+    <div id="board"></div>
+    <div id="info">Donani bosing → keyin joyni bosing</div>
+    <button id="restart" onclick="initGame()">🔄 Qayta boshlash</button>
+
+<script>
+const PIECES = {
+    'wK':'♔','wQ':'♕','wR':'♖','wB':'♗','wN':'♘','wP':'♙',
+    'bK':'♚','bQ':'♛','bR':'♜','bB':'♝','bN':'♞','bP':'♟'
+};
+
+let board = [];
+let selected = null;
+let turn = 'w';
+let gameOver = false;
+
+function initGame() {
+    turn = 'w';
+    gameOver = false;
+    selected = null;
+    board = [
+        ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+        ['bP','bP','bP','bP','bP','bP','bP','bP'],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        ['wP','wP','wP','wP','wP','wP','wP','wP'],
+        ['wR','wN','wB','wQ','wK','wB','wN','wR'],
+    ];
+    setStatus("Sizning navbatingiz (Oq)");
+    renderBoard();
+}
+
+function renderBoard() {
+    const el = document.getElementById('board');
+    el.innerHTML = '';
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell ' + ((r+c)%2===0 ? 'white' : 'black');
+            cell.dataset.r = r;
+            cell.dataset.c = c;
+            if (board[r][c]) cell.textContent = PIECES[board[r][c]] || '';
+            if (selected && selected.r===r && selected.c===c) cell.classList.add('selected');
+            cell.onclick = () => onCell(r, c);
+            el.appendChild(cell);
+        }
+    }
+}
+
+function setStatus(msg) {
+    document.getElementById('status').textContent = msg;
+}
+
+function onCell(r, c) {
+    if (gameOver) return;
+    const piece = board[r][c];
+
+    if (selected) {
+        if (selected.r===r && selected.c===c) {
+            selected = null;
+            renderBoard();
+            return;
+        }
+        if (piece && piece[0]===turn) {
+            selected = {r, c};
+            renderBoard();
+            return;
+        }
+        // Yurish
+        if (isValidMove(selected.r, selected.c, r, c)) {
+            makeMove(selected.r, selected.c, r, c);
+            selected = null;
+            if (!gameOver) {
+                setTimeout(aiMove, 400);
+            }
+        } else {
+            setStatus("❌ Bu yurish mumkin emas!");
+            selected = null;
+            renderBoard();
+        }
+    } else {
+        if (piece && piece[0]===turn) {
+            selected = {r, c};
+            renderBoard();
+        }
+    }
+}
+
+function makeMove(fr, fc, tr, tc) {
+    const captured = board[tr][tc];
+    if (captured && captured[1]==='K') {
+        board[tr][tc] = board[fr][fc];
+        board[fr][fc] = null;
+        gameOver = true;
+        renderBoard();
+        setStatus(turn==='w' ? "🎉 Siz yutdingiz!" : "🤖 AI yutdi!");
+        return;
+    }
+    // Piyoda oxirga yetsa
+    if (board[fr][fc]==='wP' && tr===0) board[tr][tc] = 'wQ';
+    else if (board[fr][fc]==='bP' && tr===7) board[tr][tc] = 'bQ';
+    else board[tr][tc] = board[fr][fc];
+    board[fr][fc] = null;
+    turn = turn==='w' ? 'b' : 'w';
+    renderBoard();
+    if (!gameOver) setStatus(turn==='w' ? "Sizning navbatingiz (Oq)" : "🤖 AI o'ylayapti...");
+}
+
+function isValidMove(fr, fc, tr, tc) {
+    const piece = board[fr][fc];
+    if (!piece) return false;
+    const target = board[tr][tc];
+    if (target && target[0]===piece[0]) return false;
+    const dr = tr-fr, dc = tc-fc;
+    const type = piece[1];
+    const color = piece[0];
+
+    if (type==='P') {
+        const dir = color==='w' ? -1 : 1;
+        const startRow = color==='w' ? 6 : 1;
+        if (dc===0 && dr===dir && !board[tr][tc]) return true;
+        if (dc===0 && dr===2*dir && fr===startRow && !board[fr+dir][fc] && !board[tr][tc]) return true;
+        if (Math.abs(dc)===1 && dr===dir && board[tr][tc] && board[tr][tc][0]!==color) return true;
+        return false;
+    }
+    if (type==='N') return (Math.abs(dr)===2&&Math.abs(dc)===1)||(Math.abs(dr)===1&&Math.abs(dc)===2);
+    if (type==='K') return Math.abs(dr)<=1 && Math.abs(dc)<=1;
+    if (type==='R') return (dr===0||dc===0) && pathClear(fr,fc,tr,tc);
+    if (type==='B') return Math.abs(dr)===Math.abs(dc) && pathClear(fr,fc,tr,tc);
+    if (type==='Q') return ((dr===0||dc===0)||Math.abs(dr)===Math.abs(dc)) && pathClear(fr,fc,tr,tc);
+    return false;
+}
+
+function pathClear(fr, fc, tr, tc) {
+    const dr = Math.sign(tr-fr), dc = Math.sign(tc-fc);
+    let r=fr+dr, c=fc+dc;
+    while (r!==tr || c!==tc) {
+        if (board[r][c]) return false;
+        r+=dr; c+=dc;
+    }
+    return true;
+}
+
+function aiMove() {
+    if (gameOver) return;
+    let best = null;
+    // Barcha mumkin bo'lgan yurishlarni topamiz
+    for (let fr=0;fr<8;fr++) for (let fc=0;fc<8;fc++) {
+        if (!board[fr][fc] || board[fr][fc][0]!=='b') continue;
+        for (let tr=0;tr<8;tr++) for (let tc=0;tc<8;tc++) {
+            if (isValidMove(fr,fc,tr,tc)) {
+                const val = board[tr][tc] ? pieceValue(board[tr][tc]) : 0;
+                if (!best || val > best.val) best = {fr,fc,tr,tc,val};
+            }
+        }
+    }
+    if (best) makeMove(best.fr, best.fc, best.tr, best.tc);
+    else { gameOver=true; setStatus("🎉 Siz yutdingiz!"); }
+}
+
+function pieceValue(p) {
+    const v = {'P':1,'N':3,'B':3,'R':5,'Q':9,'K':100};
+    return v[p[1]] || 0;
+}
+
+initGame();
+</script>
+</body>
+</html>
