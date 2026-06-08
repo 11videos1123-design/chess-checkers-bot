@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shashka</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0f0f1a;
+            --panel: #1a1a2e;
+            --accent: #e03131;
+            --text: #fff;
+            --cell-size: 46px;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 8px;
+            overflow-x: hidden;
+        }
+        /* HEADER */
+        #header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 6px;
+        }
+        #header h2 { font-size: 18px; }
+        #settings-btn {
+            background: var(--panel);
+            border: none; color: #fff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer; font-size: 16px;
+        }
+        /* STATUS */
+        #status {
+            font-size: 14px; color: #aaa;
+            text-align: center; min-height: 20px;
+            margin-bottom: 6px;
+        }
+        #status.win { color: #51cf66; font-weight: bold; font-size: 16px; }
+        #status.must { color: #ff6b6b; font-weight: bold; }
+        #status.ai { color: #74c0fc; }
+        /* TIMERS */
+        #timers {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+        .timer-box {
+            background: var(--panel);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: center;
+        }
+        .timer-box.active { border: 2px solid var(--accent); }
+        .timer-box span { font-size: 18px; font-weight: bold; }
+        /* BOARD */
+        #board-wrap { display: flex; align-items: center; }
+        #row-labels { display: flex; flex-direction: column; margin-right: 4px; }
+        .row-label {
+            height: var(--cell-size);
+            display: flex; align-items: center;
+            font-size: 11px; color: #666;
+        }
+        #board-col { display: flex; flex-direction: column; }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, var(--cell-size));
+            grid-template-rows: repeat(8, var(--cell-size));
+            border: 3px solid var(--accent);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        #col-labels { display: flex; margin-top: 3px; }
+        .col-label {
+            width: var(--cell-size);
+            text-align: center;
+            font-size: 11px; color: #666;
+        }
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; position: relative;
+            transition: background 0.15s;
+        }
+        .light { background: #f0d9b5; }
+        .dark { background: #8B4513; }
+        .selected { background: #7fc97f !important; }
+        .last-from { background: rgba(255,215,0,0.3) !important; }
+        .last-to { background: rgba(255,215,0,0.5) !important; }
+        .possible::after {
+            content: ''; position: absolute;
+            width: 12px; height: 12px;
+            background: rgba(255,255,255,0.35);
+            border-radius: 50%; pointer-events: none;
+        }
+        .capture-hint { box-shadow: inset 0 0 0 3px rgba(255,80,80,0.7); }
+        .must-move { outline: 2px solid #ff6b6b; outline-offset: -2px; }
+        /* PIECES */
+        .piece {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            transition: transform 0.15s;
+            position: relative;
+        }
+        .piece-w {
+            background: radial-gradient(circle at 35% 30%, #ffffff, #cccccc);
+            border: 2px solid #999;
+            box-shadow: 2px 3px 6px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.8);
+            color: #555;
+        }
+        .piece-b {
+            background: radial-gradient(circle at 35% 30%, #cc2222, #7a0000);
+            border: 2px solid #500;
+            box-shadow: 2px 3px 6px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,100,100,0.4);
+            color: #ffd700;
+        }
+        .piece.king::after {
+            content: '♛';
+            position: absolute;
+            font-size: 16px;
+        }
+        /* SCORE */
+        #score {
+            display: flex; gap: 10px;
+            margin-top: 8px; margin-bottom: 6px;
+        }
+        .score-box {
+            background: var(--panel);
+            padding: 5px 14px;
+            border-radius: 8px; text-align: center;
+            font-size: 13px;
+        }
+        .score-box b { font-size: 20px; }
+        /* STREAK & BADGE */
+        #streak {
+            font-size: 13px; color: #ffd700;
+            margin-bottom: 4px; text-align: center;
+        }
+        /* DIFFICULTY */
+        #difficulty-row {
+            display: flex; gap: 6px;
+            margin-bottom: 6px;
+        }
+        .diff-btn {
+            padding: 4px 12px;
+            border: 2px solid #444;
+            background: var(--panel);
+            color: #aaa; border-radius: 8px;
+            cursor: pointer; font-size: 12px;
+        }
+        .diff-btn.active { border-color: var(--accent); color: #fff; }
+        /* MOVES LOG */
+        #moves-log {
+            width: 100%; max-width: 400px;
+            background: var(--panel);
+            border-radius: 8px; padding: 6px 8px;
+            max-height: 70px; overflow-y: auto;
+            margin-bottom: 6px;
+        }
+        #moves-log h4 { color: var(--accent); font-size: 12px; margin-bottom: 3px; }
+        #moves-list { display: flex; flex-wrap: wrap; gap: 3px; }
+        .move-item {
+            background: #2a2a3e;
+            padding: 1px 5px; border-radius: 4px; font-size: 11px;
+        }
+        .move-w { color: #fff; }
+        .move-b { color: #ff8787; }
+        /* CHART */
+        #chart-wrap {
+            width: 100%; max-width: 400px;
+            background: var(--panel);
+            border-radius: 8px; padding: 6px 8px;
+            margin-bottom: 6px;
+        }
+        #chart-wrap h4 { color: #74c0fc; font-size: 12px; margin-bottom: 4px; }
+        #advantage-chart {
+            width: 100%; height: 30px;
+            display: flex; align-items: center;
+            background: #2a2a3e; border-radius: 6px; overflow: hidden;
+        }
+        #adv-w { background: #ccc; height: 100%; transition: width 0.3s; }
+        #adv-b { background: #c00; height: 100%; transition: width 0.3s; }
+        /* CHAT */
+        #chat-wrap {
+            width: 100%; max-width: 400px;
+            background: var(--panel);
+            border-radius: 8px; padding: 6px 8px;
+            margin-bottom: 6px;
+        }
+        #chat-wrap h4 { color: #74c0fc; font-size: 12px; margin-bottom: 4px; }
+        #chat-messages {
+            max-height: 80px; overflow-y: auto;
+            margin-bottom: 4px;
+        }
+        .chat-msg {
+            font-size: 12px; margin-bottom: 2px;
+            padding: 2px 6px; border-radius: 6px;
+        }
+        .chat-msg.user { background: #2a4a6e; text-align: right; }
+        .chat-msg.ai { background: #2a2a3e; color: #74c0fc; }
+        #chat-input-row { display: flex; gap: 4px; }
+        #chat-input {
+            flex: 1; padding: 4px 8px;
+            border-radius: 6px; border: 1px solid #444;
+            background: #2a2a3e; color: #fff; font-size: 12px;
+        }
+        #chat-send {
+            padding: 4px 10px;
+            background: #74c0fc; color: #000;
+            border: none; border-radius: 6px;
+            cursor: pointer; font-size: 12px;
+        }
+        /* BUTTONS */
+        #btn-row {
+            display: flex; gap: 6px;
+            flex-wrap: wrap; justify-content: center;
+            margin-bottom: 6px;
+        }
+        .action-btn {
+            padding: 7px 14px;
+            border: none; border-radius: 8px;
+            cursor: pointer; font-size: 13px;
+            font-weight: bold;
+        }
+        #btn-restart { background: var(--accent); color: #fff; }
+        #btn-undo { background: #444; color: #fff; }
+        #btn-hint { background: #2f9e44; color: #fff; }
+        #btn-surrender { background: #862e9c; color: #fff; }
+        /* SETTINGS MODAL */
+        #settings-modal {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center; justify-content: center;
+        }
+        #settings-modal.open { display: flex; }
+        #settings-box {
+            background: var(--panel);
+            border-radius: 12px; padding: 16px;
+            width: 300px; max-width: 90vw;
+        }
+        #settings-box h3 { margin-bottom: 10px; color: var(--accent); }
+        .setting-row {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px; font-size: 14px;
+        }
+        .toggle {
+            width: 40px; height: 22px;
+            background: #444; border-radius: 11px;
+            position: relative; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle.on { background: #2f9e44; }
+        .toggle::after {
+            content: ''; position: absolute;
+            width: 18px; height: 18px;
+            background: #fff; border-radius: 50%;
+            top: 2px; left: 2px;
+            transition: left 0.2s;
+        }
+        .toggle.on::after { left: 20px; }
+        .theme-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+        .theme-btn {
+            width: 28px; height: 28px;
+            border-radius: 50%; border: 3px solid transparent;
+            cursor: pointer;
+        }
+        .theme-btn.active { border-color: #fff; }
+        #close-settings {
+            width: 100%; padding: 8px;
+            background: var(--accent); color: #fff;
+            border: none; border-radius: 8px;
+            cursor: pointer; font-size: 14px; margin-top: 8px;
+        }
+        /* CONFETTI */
+        .confetti-piece {
+            position: fixed;
+            width: 10px; height: 10px;
+            border-radius: 2px;
+            animation: fall 2s ease-in forwards;
+            pointer-events: none; z-index: 200;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        /* BADGES */
+        #badges {
+            display: flex; gap: 6px;
+            flex-wrap: wrap; justify-content: center;
+            margin-bottom: 6px; max-width: 400px;
+        }
+        .badge {
+            background: #2a2a3e;
+            padding: 3px 8px; border-radius: 12px;
+            font-size: 11px; color: #ffd700;
+        }
+        /* ACCESSIBILITY */
+        body.large-text { font-size: 18px; }
+        body.large-text .cell { font-size: 22px; }
+        body.high-contrast .light { background: #fff; }
+        body.high-contrast .dark { background: #000; }
+        body.high-contrast .piece-w { background: #fff; border-color: #000; }
+        body.high-contrast .piece-b { background: #f00; border-color: #000; }
+        body.slow-anim * { transition-duration: 0.6s !important; animation-duration: 4s !important; }
+        body.big-touch .piece { width: 42px; height: 42px; }
+    </style>
+</head>
+<body>
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal">
+        <div id="settings-box">
+            <h3>⚙️ Sozlamalar</h3>
+            <div class="setting-row">
+                <span>🔊 Ovoz</span>
+                <div class="toggle on" id="toggle-sound" onclick="toggleSetting('sound')"></div>
+            </div>
+            <div class="setting-row">
+                <span>🎵 Fon musiqasi</span>
+                <div class="toggle" id="toggle-music" onclick="toggleSetting('music')"></div>
+            </div>
+            <div class="setting-row">
+                <span>🔤 Katta matn</span>
+                <div class="toggle" id="toggle-large" onclick="toggleSetting('large')"></div>
+            </div>
+            <div class="setting-row">
+                <span>🎨 Yuqori kontrast</span>
+                <div class="toggle" id="toggle-contrast" onclick="toggleSetting('contrast')"></div>
+            </div>
+            <div class="setting-row">
+                <span>🐢 Sekin animatsiya</span>
+                <div class="toggle" id="toggle-slow" onclick="toggleSetting('slow')"></div>
+            </div>
+            <div class="setting-row">
+                <span>👆 Katta tugmalar</span>
+                <div class="toggle" id="toggle-touch" onclick="toggleSetting('touch')"></div>
+            </div>
+            <div class="setting-row">
+                <span>🌙 Tema</span>
+                <div class="theme-btns">
+                    <div class="theme-btn active" style="background:#e03131" onclick="setTheme('red')"></div>
+                    <div class="theme-btn" style="background:#2f9e44" onclick="setTheme('green')"></div>
+                    <div class="theme-btn" style="background:#1971c2" onclick="setTheme('blue')"></div>
+                    <div class="theme-btn" style="background:#f0a500" onclick="setTheme('gold')"></div>
+                </div>
+            </div>
+            <div class="setting-row">
+                <span>📐 Doska o'lchami</span>
+                <div style="display:flex;gap:6px">
+                    <button class="diff-btn active" onclick="setBoardSize(40)" id="size-s">S</button>
+                    <button class="diff-btn" onclick="setBoardSize(46)" id="size-m">M</button>
+                    <button class="diff-btn" onclick="setBoardSize(54)" id="size-l">L</button>
+                </div>
+            </div>
+            <button id="close-settings" onclick="closeSettings()">✅ Saqlash</button>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div id="header">
+        <h2>🔴 Shashka</h2>
+        <button id="settings-btn" onclick="openSettings()">⚙️</button>
+    </div>
+
+    <div id="difficulty-row">
+        <button class="diff-btn active" id="diff-easy" onclick="setDifficulty('easy')">🟢 Oson</button>
+        <button class="diff-btn" id="diff-medium" onclick="setDifficulty('medium')">🟡 O'rta</button>
+        <button class="diff-btn" id="diff-hard" onclick="setDifficulty('hard')">🔴 Qiyin</button>
+        <button class="diff-btn" id="diff-master" onclick="setDifficulty('master')">⚫ Ustoz</button>
+    </div>
+
+    <div id="timers">
+        <div class="timer-box active" id="timer-w">⚪ <span id="time-w">5:00</span></div>
+        <div class="timer-box" id="timer-b">🔴 <span id="time-b">5:00</span></div>
+    </div>
+
+    <div id="status">Sizning navbatingiz (Oq)</div>
+
+    <div id="board-wrap">
+        <div id="row-labels">
+            <div class="row-label">8</div><div class="row-label">7</div>
+            <div class="row-label">6</div><div class="row-label">5</div>
+            <div class="row-label">4</div><div class="row-label">3</div>
+            <div class="row-label">2</div><div class="row-label">1</div>
+        </div>
+        <div id="board-col">
+            <div id="board"></div>
+            <div id="col-labels">
+                <div class="col-label">a</div><div class="col-label">b</div>
+                <div class="col-label">c</div><div class="col-label">d</div>
+                <div class="col-label">e</div><div class="col-label">f</div>
+                <div class="col-label">g</div><div class="col-label">h</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="score">
+        <div class="score-box">⚪ Oq: <b id="w-count">12</b></div>
+        <div class="score-box">🔴 Qora: <b id="b-count">12</b></div>
+    </div>
+
+    <div id="streak"></div>
+    <div id="badges"></div>
+
+    <div id="chart-wrap">
+        <h4>📊 Ustunlik</h4>
+        <div id="advantage-chart">
+            <div id="adv-w" style="width:50%"></div>
+            <div id="adv-b" style="width:50%"></div>
+        </div>
+    </div>
+
+    <div id="moves-log">
+        <h4>📋 Yurishlar</h4>
+        <div id="moves-list"></div>
+    </div>
+
+    <div id="chat-wrap">
+        <h4>💬 AI bilan chat</h4>
+        <div id="chat-messages"></div>
+        <div id="chat-input-row">
+            <input id="chat-input" type="text" placeholder="Yozing..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button id="chat-send" onclick="sendChat()">➤</button>
+        </div>
+    </div>
+
+    <div id="btn-row">
+        <button class="action-btn" id="btn-restart" onclick="initGame()">🔄 Yangi</button>
+        <button class="action-btn" id="btn-undo" onclick="undoMove()">↩️ Orqaga</button>
+        <button class="action-btn" id="btn-hint" onclick="showHint()">💡 Maslahat</button>
+        <button class="action-btn" id="btn-surrender" onclick="surrender()">🏳️ Taslim</button>
+    </div>
+    <script>
+// === SOZLAMALAR ===
+let settings = {
+    sound: true, music: false, large: false,
+    contrast: false, slow: false, touch: false,
+    theme: 'red', boardSize: 46
+};
+let difficulty = 'easy';
+let streak = 0, totalWins = 0, totalGames = 0;
+let earnedBadges = [];
+
+// === O'YIN HOLATI ===
+let board=[], selected=null, turn='w', gameOver=false;
+let movesList=[], lastMove=null, history=[];
+let wTime=300, bTime=300, timerInterval=null;
+let aiMood = 'normal'; // normal, aggressive, defensive
+
+// === AUDIO ===
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let audioCtx=null, bgGain=null, bgOsc=null;
+function getCtx(){if(!audioCtx)audioCtx=new AudioCtx();return audioCtx;}
+
+function playSound(type){
+    if(!settings.sound) return;
+    try{
+        const ctx=getCtx();
+        if(type==='win'){
+            [523,659,784,1047].forEach((f,i)=>{
+                const o=ctx.createOscillator(),g=ctx.createGain();
+                o.connect(g);g.connect(ctx.destination);
+                o.frequency.value=f;
+                g.gain.setValueAtTime(0.3,ctx.currentTime+i*0.15);
+                g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.15+0.3);
+                o.start(ctx.currentTime+i*0.15);
+                o.stop(ctx.currentTime+i*0.15+0.3);
+            });
+            return;
+        }
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        const t=ctx.currentTime;
+        if(type==='move'){o.frequency.setValueAtTime(400,t);g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);o.start(t);o.stop(t+0.12);}
+        else if(type==='capture'){o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(150,t+0.2);g.gain.setValueAtTime(0.4,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25);}
+        else if(type==='king'){o.frequency.setValueAtTime(500,t);o.frequency.setValueAtTime(700,t+0.1);o.frequency.setValueAtTime(900,t+0.2);g.gain.setValueAtTime(0.35,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.4);o.start(t);o.stop(t+0.4);}
+        else if(type==='select'){o.frequency.value=500;g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.08);o.start(t);o.stop(t+0.08);}
+        else if(type==='hint'){o.frequency.setValueAtTime(600,t);o.frequency.setValueAtTime(800,t+0.1);g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);o.start(t);o.stop(t+0.2);}
+    }catch(e){}
+}
+
+function toggleMusic(){
+    if(!settings.music){if(bgOsc)bgOsc.stop();return;}
+    try{
+        const ctx=getCtx();
+        bgOsc=ctx.createOscillator();
+        bgGain=ctx.createGain();
+        bgOsc.connect(bgGain);bgGain.connect(ctx.destination);
+        bgOsc.type='sine';bgOsc.frequency.value=60;
+        bgGain.gain.value=0.05;
+        bgOsc.start();
+    }catch(e){}
+}
+
+// === SOZLAMALAR UI ===
+function openSettings(){document.getElementById('settings-modal').classList.add('open');}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('open');}
+
+function toggleSetting(key){
+    settings[key]=!settings[key];
+    document.getElementById('toggle-'+key).classList.toggle('on',settings[key]);
+    if(key==='large') document.body.classList.toggle('large-text',settings[key]);
+    if(key==='contrast') document.body.classList.toggle('high-contrast',settings[key]);
+    if(key==='slow') document.body.classList.toggle('slow-anim',settings[key]);
+    if(key==='touch') document.body.classList.toggle('big-touch',settings[key]);
+    if(key==='music') toggleMusic();
+}
+
+function setTheme(color){
+    const colors={red:'#e03131',green:'#2f9e44',blue:'#1971c2',gold:'#f0a500'};
+    document.documentElement.style.setProperty('--accent',colors[color]);
+    settings.theme=color;
+    document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+function setBoardSize(size){
+    settings.boardSize=size;
+    document.documentElement.style.setProperty('--cell-size',size+'px');
+    document.querySelectorAll('[id^="size-"]').forEach(b=>b.classList.remove('active'));
+    event.target.classList.add('active');
+    renderBoard();
+}
+
+function setDifficulty(d){
+    difficulty=d;
+    document.querySelectorAll('.diff-btn[id^="diff-"]').forEach(b=>b.classList.remove('active'));
+    document.getElementById('diff-'+d).classList.add('active');
+}
+
+// === TIMER ===
+function startTimer(){
+    clearInterval(timerInterval);
+    timerInterval=setInterval(()=>{
+        if(gameOver) return;
+        if(turn==='w') wTime--; else bTime--;
+        updateTimerUI();
+        if(wTime<=0||bTime<=0){
+            clearInterval(timerInterval);
+            gameOver=true;
+            const winner=wTime<=0?'🤖 AI':'🎉 Siz';
+            setStatus(winner+' yutdi! (Vaqt tugadi)','win');
+            playSound('win'); confetti();
+        }
+    },1000);
+}
+
+function updateTimerUI(){
+    const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    document.getElementById('time-w').textContent=fmt(wTime);
+    document.getElementById('time-b').textContent=fmt(bTime);
+    document.getElementById('timer-w').classList.toggle('active',turn==='w');
+    document.getElementById('timer-b').classList.toggle('active',turn==='b');
+}
+
+// === O'YIN MANTIQI ===
+function initGame(){
+    turn='w'; gameOver=false; selected=null;
+    movesList=[]; lastMove=null; history=[];
+    wTime=300; bTime=300;
+    board=Array(8).fill(null).map(()=>Array(8).fill(0));
+    for(let r=0;r<3;r++) for(let c=0;c<8;c++) if((r+c)%2===1) board[r][c]=2;
+    for(let r=5;r<8;r++) for(let c=0;c<8;c++) if((r+c)%2===1) board[r][c]=1;
+    totalGames++;
+    aiMood='normal';
+    setStatus("Sizning navbatingiz (Oq)",'');
+    updateScore(); updateMoves(); updateChart();
+    clearBadges(); updateStreak();
+    startTimer(); renderBoard();
+    addChatMsg('ai','Salom! O\'yin boshlanди. Omad! 🎮');
+}
+
+function isW(v){return v===1||v===3;}
+function isB(v){return v===2||v===4;}
+function isKing(v){return v===3||v===4;}
+function own(v){return isW(v)?'w':'b';}
+function belongsTo(v,t){return t==='w'?isW(v):isB(v);}
+function enemy(v,t){return t==='w'?isB(v):isW(v);}
+
+function getCaptures(r,c,b){
+    b=b||board;
+    const v=b[r][c]; if(!v) return [];
+    const t=own(v);
+    const dirs=isKing(v)?[[-1,-1],[-1,1],[1,-1],[1,1]]:
+        isW(v)?[[-1,-1],[-1,1]]:[[1,-1],[1,1]];
+    const caps=[];
+    for(const [dr,dc] of dirs){
+        const mr=r+dr,mc=c+dc,lr=r+2*dr,lc=c+2*dc;
+        if(lr<0||lr>7||lc<0||lc>7) continue;
+        if(enemy(b[mr][mc],t)&&b[lr][lc]===0)
+            caps.push({tr:lr,tc:lc,mr,mc});
+    }
+    return caps;
+}
+
+function getMoves(r,c){
+    const v=board[r][c]; if(!v) return [];
+    const dirs=isKing(v)?[[-1,-1],[-1,1],[1,-1],[1,1]]:
+        isW(v)?[[-1,-1],[-1,1]]:[[1,-1],[1,1]];
+    return dirs.map(([dr,dc])=>({tr:r+dr,tc:c+dc,mr:null,mc:null}))
+        .filter(m=>m.tr>=0&&m.tr<8&&m.tc>=0&&m.tc<8&&board[m.tr][m.tc]===0);
+}
+
+function getAllCaptures(t){
+    t=t||turn;
+    const caps=[];
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++)
+        if(belongsTo(board[r][c],t)&&getCaptures(r,c).length>0)
+            caps.push({r,c});
+    return caps;
+}
+
+function setStatus(msg,cls){
+    const el=document.getElementById('status');
+    el.textContent=msg; el.className=cls||'';
+}
+
+function updateScore(){
+    let w=0,b=0;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        if(isW(board[r][c])) w++;
+        if(isB(board[r][c])) b++;
+    }
+    document.getElementById('w-count').textContent=w;
+    document.getElementById('b-count').textContent=b;
+    // AI kayfiyati
+    if(b<w-3) aiMood='aggressive';
+    else if(b>w+3) aiMood='defensive';
+    else aiMood='normal';
+}
+
+function updateChart(){
+    let w=0,b=0;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        if(isW(board[r][c])) w+=isKing(board[r][c])?3:1;
+        if(isB(board[r][c])) b+=isKing(board[r][c])?3:1;
+    }
+    const total=w+b||1;
+    document.getElementById('adv-w').style.width=(w/total*100)+'%';
+    document.getElementById('adv-b').style.width=(b/total*100)+'%';
+}
+
+function updateMoves(){
+    const el=document.getElementById('moves-list');
+    el.innerHTML=movesList.map(m=>
+        `<span class="move-item ${m.color==='w'?'move-w':'move-b'}">${m.text}</span>`
+    ).join('');
+    el.scrollLeft=el.scrollWidth;
+}
+
+function updateStreak(){
+    const el=document.getElementById('streak');
+    if(streak>0) el.textContent=`🔥 ${streak} ketma-ket g'alaba!`;
+    else el.textContent='';
+}
+
+function clearBadges(){
+    document.getElementById('badges').innerHTML='';
+}
+
+function awardBadge(text){
+    if(earnedBadges.includes(text)) return;
+    earnedBadges.push(text);
+    const el=document.getElementById('badges');
+    const b=document.createElement('div');
+    b.className='badge'; b.textContent=text;
+    el.appendChild(b);
+    addChatMsg('ai','🏅 Nishon oldingiz: '+text);
+}
+
+// === RENDER ===
+function renderBoard(){
+    const el=document.getElementById('board'); el.innerHTML='';
+    const allCaps=getAllCaptures();
+    const hasCaps=allCaps.length>0;
+    const selMoves=selected?(hasCaps?getCaptures(selected.r,selected.c):getMoves(selected.r,selected.c)):[];
+
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const cell=document.createElement('div');
+        cell.className='cell '+((r+c)%2===0?'light':'dark');
+        const v=board[r][c];
+        if(v){
+            const piece=document.createElement('div');
+            piece.className='piece '+(isW(v)?'piece-w':'piece-b')+(isKing(v)?' king':'');
+            cell.appendChild(piece);
+        }
+        if(lastMove){
+            if(lastMove.fr===r&&lastMove.fc===c) cell.classList.add('last-from');
+            if(lastMove.tr===r&&lastMove.tc===c) cell.classList.add('last-to');
+        }
+        if(selected&&selected.r===r&&selected.c===c) cell.classList.add('selected');
+        const sm=selMoves.find(m=>m.tr===r&&m.tc===c);
+        if(sm){ cell.classList.add(sm.mr!==null?'capture-hint':'possible'); }
+        if(hasCaps&&allCaps.find(p=>p.r===r&&p.c===c)&&(!selected||selected.r!==r||selected.c!==c))
+            cell.classList.add('must-move');
+        cell.onclick=()=>onCell(r,c);
+        el.appendChild(cell);
+    }
+}
+
+// === INPUT ===
+function onCell(r,c){
+    if(gameOver||turn!=='w') return;
+    const v=board[r][c];
+    const allCaps=getAllCaptures();
+    const hasCaps=allCaps.length>0;
+
+    if(selected){
+        if(selected.r===r&&selected.c===c){selected=null;renderBoard();return;}
+        if(belongsTo(v,'w')){
+            if(hasCaps&&!allCaps.find(p=>p.r===r&&p.c===c)){
+                setStatus("⚠️ Olish shart!",'must');
+                addChatMsg('ai','Siz olishingiz shart! 🔴');
+                return;
+            }
+            selected={r,c}; playSound('select'); renderBoard(); return;
+        }
+        const moves=hasCaps?getCaptures(selected.r,selected.c):getMoves(selected.r,selected.c);
+        const move=moves.find(m=>m.tr===r&&m.tc===c);
+        if(move){doMove(selected.r,selected.c,move,true);selected=null;}
+        else{setStatus("❌ Bu yurish mumkin emas!",'');selected=null;renderBoard();}
+    } else {
+        if(!belongsTo(v,'w')) return;
+        if(hasCaps&&!allCaps.find(p=>p.r===r&&p.c===c)){
+            setStatus("⚠️ Olish shart!",'must'); return;
+        }
+        selected={r,c}; playSound('select'); renderBoard();
+    }
+}
+
+// === YURISH ===
+function doMove(fr,fc,move,saveHistory){
+    const {tr,tc,mr,mc}=move;
+    const v=board[fr][fc];
+    const captured=mr!==null;
+
+    if(saveHistory) history.push(JSON.parse(JSON.stringify({board,turn,lastMove,movesList:[...movesList]})));
+
+    if(captured){board[mr][mc]=0;playSound('capture');}
+    else playSound('move');
+
+    board[tr][tc]=v; board[fr][fc]=0;
+    lastMove={fr,fc,tr,tc};
+
+    let becameKing=false;
+    if(v===1&&tr===0){board[tr][tc]=3;becameKing=true;playSound('king');}
+    if(v===2&&tr===7){board[tr][tc]=4;becameKing=true;playSound('king');}
+
+    const alg=(String.fromCharCode(97+fc))+(8-fr)+'-'+(String.fromCharCode(97+tc))+(8-tr);
+    movesList.push({color:turn,text:alg+(captured?'×':'')+(becameKing?'♛':'')});
+
+    // Ko'p olish
+    if(captured&&!becameKing){
+        const more=getCaptures(tr,tc);
+        if(more.length>0){
+            selected={r:tr,c:tc};
+            updateScore();updateMoves();updateChart();renderBoard();
+            setStatus("⚠️ Yana olish mumkin!",'must');
+            return;
+        }
+    }
+
+    turn=turn==='w'?'b':'w';
+    updateScore();updateMoves();updateChart();
+
+    // G'alaba tekshirish
+    let w=0,b=0;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){if(isW(board[r][c]))w++;if(isB(board[r][c]))b++;}
+
+    if(w===0||getAllCaptures('b').length===0&&getMoveCount('b')===0){
+        endGame(true); return;
+    }
+    if(b===0||getAllCaptures('w').length===0&&getMoveCount('w')===0){
+        endGame(false); return;
+    }
+
+    renderBoard();
+    checkBadges(w,b);
+
+    if(turn==='b'){
+        setStatus("🤖 AI o'ylayapti...",'ai');
+        const delay=difficulty==='easy'?600:difficulty==='medium'?900:1200;
+        setTimeout(aiMove,delay);
+    } else {
+        const caps=getAllCaptures();
+        setStatus(caps.length>0?"⚠️ Olish shart!":"Sizning navbatingiz (Oq)",caps.length>0?'must':'');
+    }
+}
+
+function getMoveCount(t){
+    let count=0;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++)
+        if(belongsTo(board[r][c],t)) count+=getMoves(r,c).length;
+    return count;
+}
+
+function endGame(playerWon){
+    gameOver=true; clearInterval(timerInterval);
+    playSound('win'); confetti();
+    if(playerWon){
+        streak++; totalWins++;
+        setStatus("🎉 Siz yutdingiz!",'win');
+        addChatMsg('ai',aiMood==='aggressive'?"Omadingiz bor ekan! 😤":"Yaxshi o'yin! 👏");
+    } else {
+        streak=0;
+        setStatus("🤖 AI yutdi!",'win');
+        addChatMsg('ai',aiMood==='defensive'?"Ehtiyotkor bo'ldim 😌":"Keyingi safar yaxshiroq! 💪");
+    }
+    updateStreak();
+    if(streak>=3) awardBadge('🔥 3 ketma-ket!');
+    if(streak>=5) awardBadge('⚡ 5 ketma-ket!');
+    if(totalWins>=10) awardBadge('🏆 10 g\'alaba!');
+}
+
+function checkBadges(w,b){
+    if(w>=10&&b<=3) awardBadge('💪 Ustunlik!');
+    if(movesList.length>=40) awardBadge('🧠 Uzoq o\'yin!');
+}
+
+// === UNDO ===
+function undoMove(){
+    if(history.length<2) return;
+    history.pop(); history.pop();
+    const prev=history[history.length-1];
+    if(!prev) return;
+    board=JSON.parse(JSON.stringify(prev.board));
+    turn=prev.turn; lastMove=prev.lastMove;
+    movesList=[...prev.movesList];
+    gameOver=false;
+    updateScore();updateMoves();updateChart();renderBoard();
+    setStatus("Sizning navbatingiz (Oq)",'');
+    addChatMsg('ai','Yurishni qaytardingiz 🔄');
+}
+
+// === MASLAHAT ===
+function showHint(){
+    if(gameOver||turn!=='w') return;
+    const allCaps=getAllCaptures();
+    const hasCaps=allCaps.length>0;
+    let best=null;
+    for(let fr=0;fr<8;fr++) for(let fc=0;fc<8;fc++){
+        if(!belongsTo(board[fr][fc],'w')) continue;
+        const moves=hasCaps?getCaptures(fr,fc):getMoves(fr,fc);
+        if(moves.length>0&&!best) best={r:fr,c:fc,move:moves[0]};
+    }
+    if(best){
+        selected={r:best.r,c:best.c};
+        playSound('hint'); renderBoard();
+        const alg=(String.fromCharCode(97+best.r))+(8-best.r);
+        addChatMsg('ai',`💡 Maslahat: ${alg} donasini yuring`);
+        setStatus(`💡 Tavsiya: dona ko'rsatildi`,'');
+    }
+}
+
+// === TASLIM ===
+function surrender(){
+    if(gameOver) return;
+    gameOver=true; clearInterval(timerInterval);
+    streak=0; updateStreak();
+    setStatus("🏳️ Taslim bo'ldingiz. AI yutdi!",'win');
+    addChatMsg('ai','Keyingi safar omad! 🤝');
+}
+
+// === AI ===
+function aiMove(){
+    if(gameOver) return;
+    const allCaps=getAllCaptures('b');
+    const hasCaps=allCaps.length>0;
+    let best=null, bestVal=-9999;
+
+    for(let fr=0;fr<8;fr++) for(let fc=0;fc<8;fc++){
+        if(!belongsTo(board[fr][fc],'b')) continue;
+        const moves=hasCaps?getCaptures(fr,fc):getMoves(fr,fc);
+        for(const m of moves){
+            let val=m.mr!==null?10:1;
+            // Qiyinlikka qarab strategiya
+            if(difficulty==='easy'){
+                val+=Math.random()*3;
+            } else if(difficulty==='medium'){
+                if(m.tr===7) val+=3;
+                if(isKing(board[fr][fc])) val+=1;
+                val+=Math.random()*1.5;
+            } else if(difficulty==='hard'||difficulty==='master'){
+                if(m.tr===7) val+=5;
+                if(isKing(board[fr][fc])) val+=2;
+                // Markazni nazorat
+                if(m.tc>=2&&m.tc<=5) val+=1;
+                // AI kayfiyati
+                if(aiMood==='aggressive') val+=m.mr!==null?3:0;
+                if(aiMood==='defensive') val+=m.tr<3?2:0;
+                if(difficulty==='master') val+=minimax(3);
+            }
+            if(val>bestVal){bestVal=val;best={fr,fc,move:m};}
+        }
+    }
+
+    if(best){
+        selected={r:best.fr,c:best.fc};
+        renderBoard();
+        setTimeout(()=>{
+            selected=null;
+            doMove(best.fr,best.fc,best.move,true);
+            // AI izohi
+            const msgs={
+                normal:['Yaxshi yurish!','O\'ylash kerak 🤔','Davom etamiz!'],
+                aggressive:['Hujum! ⚔️','Oldinga! 💥','Qo\'rqmang!'],
+                defensive:['Ehtiyot bo\'ling 🛡️','Himoya muhim','Sekin-asta...']
+            };
+            const pool=msgs[aiMood]||msgs.normal;
+            if(Math.random()<0.3) addChatMsg('ai',pool[Math.floor(Math.random()*pool.length)]);
+        },300);
+    } else {
+        endGame(true);
+    }
+}
+
+function minimax(depth){
+    if(depth===0) return 0;
+    let w=0,b=0;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){if(isW(board[r][c]))w++;if(isB(board[r][c]))b++;}
+    return b-w;
+}
+
+// === CHAT ===
+function addChatMsg(from,text){
+    const el=document.getElementById('chat-messages');
+    const msg=document.createElement('div');
+    msg.className='chat-msg '+from;
+    msg.textContent=(from==='ai'?'🤖 ':'👤 ')+text;
+    el.appendChild(msg);
+    el.scrollTop=el.scrollHeight;
+}
+
+function sendChat(){
+    const input=document.getElementById('chat-input');
+    const text=input.value.trim();
+    if(!text) return;
+    addChatMsg('user',text);
+    input.value='';
+    setTimeout(()=>{
+        const lower=text.toLowerCase();
+        let reply='';
+        if(lower.includes('salom')||lower.includes('hello')) reply='Salom! O\'yin davom etmoqda! 🎮';
+        else if(lower.includes('maslahat')||lower.includes('help')) reply='Olish shart bo\'lsa — oling! Dam qilishga harakat qiling 👑';
+        else if(lower.includes('yaxshi')) reply='Rahmat! Siz ham yaxshi o\'ynayapsiz 👏';
+        else if(lower.includes('qiyin')) reply=difficulty==='master'?'Ha, men kuchli! 😏':'Qiyinlikni pasaytiring 😊';
+        else if(lower.includes('gg')||lower.includes('bravo')) reply='GG! Yana o\'ynamizmi? 🔄';
+        else if(lower.includes('nima')||lower.includes('qanday')) reply='Men shashka o\'ynayman va gaplashaman! 😄';
+        else reply=['Davom eting! 💪','Qiziq o\'yin! 🎯','O\'ylang! 🧠'][Math.floor(Math.random()*3)];
+        addChatMsg('ai',reply);
+    },500);
+}
+
+// === KONFETTI ===
+function confetti(){
+    const colors=['#ff6b6b','#ffd700','#51cf66','#74c0fc','#f0a500'];
+    for(let i=0;i<40;i++){
+        setTimeout(()=>{
+            const el=document.createElement('div');
+            el.className='confetti-piece';
+            el.style.left=Math.random()*100+'vw';
+            el.style.top='-10px';
+            el.style.background=colors[Math.floor(Math.random()*colors.length)];
+            el.style.animationDuration=(1.5+Math.random())+'s';
+            el.style.transform=`rotate(${Math.random()*360}deg)`;
+            document.body.appendChild(el);
+            setTimeout(()=>el.remove(),3000);
+        },i*50);
+    }
+}
+
+// === BOSHLASH ===
+initGame();
+</script>
+</body>
+</html>
