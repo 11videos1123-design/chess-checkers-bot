@@ -28,26 +28,10 @@
         }
         #status.check { color: #ff6b6b; font-weight: bold; }
         #status.win { color: #51cf66; font-weight: bold; font-size: 18px; }
-        #board-wrap {
-            display: flex;
-            align-items: center;
-        }
-        #row-labels {
-            display: flex;
-            flex-direction: column;
-            margin-right: 4px;
-        }
-        .row-label {
-            height: 46px;
-            display: flex;
-            align-items: center;
-            font-size: 12px;
-            color: #888;
-        }
-        #board-col {
-            display: flex;
-            flex-direction: column;
-        }
+        #board-wrap { display: flex; align-items: center; }
+        #row-labels { display: flex; flex-direction: column; margin-right: 4px; }
+        .row-label { height: 46px; display: flex; align-items: center; font-size: 12px; color: #888; }
+        #board-col { display: flex; flex-direction: column; }
         #board {
             display: grid;
             grid-template-columns: repeat(8, 46px);
@@ -56,26 +40,12 @@
             border-radius: 4px;
             overflow: hidden;
         }
-        #col-labels {
-            display: flex;
-            margin-top: 4px;
-            padding-left: 2px;
-        }
-        .col-label {
-            width: 46px;
-            text-align: center;
-            font-size: 12px;
-            color: #888;
-        }
+        #col-labels { display: flex; margin-top: 4px; padding-left: 2px; }
+        .col-label { width: 46px; text-align: center; font-size: 12px; color: #888; }
         .cell {
-            width: 46px;
-            height: 46px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-            cursor: pointer;
-            position: relative;
+            width: 46px; height: 46px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px; cursor: pointer; position: relative;
             transition: background 0.15s;
         }
         .white { background: #f0d9b5; }
@@ -83,103 +53,60 @@
         .selected { background: #7fc97f !important; }
         .check-king { background: #ff6b6b !important; }
         .possible::after {
-            content: '';
-            position: absolute;
+            content: ''; position: absolute;
             width: 14px; height: 14px;
-            background: rgba(0,0,0,0.25);
-            border-radius: 50%;
+            background: rgba(0,0,0,0.25); border-radius: 50%;
         }
         .capture-possible { box-shadow: inset 0 0 0 4px rgba(0,0,0,0.3); }
         .last-move { background: rgba(255,215,0,0.4) !important; }
-
         #moves-log {
-            margin-top: 10px;
-            width: 100%;
-            max-width: 380px;
-            background: #1a1a2e;
-            border-radius: 8px;
-            padding: 8px;
-            max-height: 100px;
-            overflow-y: auto;
-            font-size: 13px;
+            margin-top: 10px; width: 100%; max-width: 380px;
+            background: #1a1a2e; border-radius: 8px; padding: 8px;
+            max-height: 100px; overflow-y: auto; font-size: 13px;
         }
         #moves-log h4 { color: #f0a500; margin-bottom: 4px; font-size: 13px; }
-        #moves-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-        .move-item {
-            background: #2a2a3e;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 12px;
-        }
+        #moves-list { display: flex; flex-wrap: wrap; gap: 4px; }
+        .move-item { background: #2a2a3e; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
         .move-item.white-move { color: #fff; }
         .move-item.black-move { color: #f0a500; }
-
-        #captured {
-            margin-top: 8px;
-            width: 100%;
-            max-width: 380px;
-            font-size: 13px;
-            text-align: center;
-        }
+        #captured { margin-top: 8px; width: 100%; max-width: 380px; font-size: 13px; text-align: center; }
         #captured span { font-size: 18px; }
-
         #restart {
-            margin-top: 10px;
-            padding: 10px 30px;
-            background: #f0a500;
-            color: #1a1a2e;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
+            margin-top: 10px; padding: 10px 30px;
+            background: #f0a500; color: #1a1a2e;
+            border: none; border-radius: 8px;
+            font-size: 15px; font-weight: bold; cursor: pointer;
         }
     </style>
 </head>
 <body>
     <h2>♟️ Shahmat</h2>
     <div id="status">Sizning navbatingiz (Oq)</div>
-
     <div id="board-wrap">
         <div id="row-labels">
-            <div class="row-label">8</div>
-            <div class="row-label">7</div>
-            <div class="row-label">6</div>
-            <div class="row-label">5</div>
-            <div class="row-label">4</div>
-            <div class="row-label">3</div>
-            <div class="row-label">2</div>
-            <div class="row-label">1</div>
+            <div class="row-label">8</div><div class="row-label">7</div>
+            <div class="row-label">6</div><div class="row-label">5</div>
+            <div class="row-label">4</div><div class="row-label">3</div>
+            <div class="row-label">2</div><div class="row-label">1</div>
         </div>
         <div id="board-col">
             <div id="board"></div>
             <div id="col-labels">
-                <div class="col-label">a</div>
-                <div class="col-label">b</div>
-                <div class="col-label">c</div>
-                <div class="col-label">d</div>
-                <div class="col-label">e</div>
-                <div class="col-label">f</div>
-                <div class="col-label">g</div>
-                <div class="col-label">h</div>
+                <div class="col-label">a</div><div class="col-label">b</div>
+                <div class="col-label">c</div><div class="col-label">d</div>
+                <div class="col-label">e</div><div class="col-label">f</div>
+                <div class="col-label">g</div><div class="col-label">h</div>
             </div>
         </div>
     </div>
-
     <div id="captured">
         <div>Oq oldi: <span id="white-captured"></span></div>
         <div>Qora oldi: <span id="black-captured"></span></div>
     </div>
-
     <div id="moves-log">
         <h4>📋 Yurishlar tarixi</h4>
         <div id="moves-list"></div>
     </div>
-
     <button id="restart" onclick="initGame()">🔄 Qayta boshlash</button>
 
 <script>
@@ -190,9 +117,59 @@ const PIECES = {
 const FILES = ['a','b','c','d','e','f','g','h'];
 
 let board=[], selected=null, turn='w', gameOver=false;
-let movesList=[], whiteCaptured=[], blackCaptured=[];
-let lastMove=null;
+let movesList=[], whiteCaptured=[], blackCaptured=[], lastMove=null;
 
+// === OVOZ ===
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function getAudioCtx() { if (!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
+
+function playSound(type) {
+    try {
+        const ctx = getAudioCtx();
+        if (type === 'win') {
+            [523,659,784,1047].forEach((freq,i) => {
+                const o=ctx.createOscillator(), g=ctx.createGain();
+                o.connect(g); g.connect(ctx.destination);
+                o.frequency.value=freq;
+                g.gain.setValueAtTime(0.3, ctx.currentTime+i*0.15);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+i*0.15+0.3);
+                o.start(ctx.currentTime+i*0.15);
+                o.stop(ctx.currentTime+i*0.15+0.3);
+            });
+            return;
+        }
+        const osc=ctx.createOscillator(), gain=ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        if (type==='move') {
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime+0.08);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.15);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.15);
+        } else if (type==='capture') {
+            osc.frequency.setValueAtTime(300, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime+0.2);
+            gain.gain.setValueAtTime(0.4, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.25);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.25);
+        } else if (type==='check') {
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.setValueAtTime(600, ctx.currentTime+0.1);
+            osc.frequency.setValueAtTime(800, ctx.currentTime+0.2);
+            gain.gain.setValueAtTime(0.4, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.3);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.3);
+        } else if (type==='select') {
+            osc.frequency.setValueAtTime(500, ctx.currentTime);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.08);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.08);
+        }
+    } catch(e) {}
+}
+
+// === O'YIN MANTIQI ===
 function initGame() {
     turn='w'; gameOver=false; selected=null;
     movesList=[]; whiteCaptured=[]; blackCaptured=[]; lastMove=null;
@@ -219,8 +196,7 @@ function findKing(color) {
 }
 
 function canAttack(fr,fc,tr,tc) {
-    const piece=board[fr][fc];
-    if (!piece) return false;
+    const piece=board[fr][fc]; if (!piece) return false;
     const dr=tr-fr, dc=tc-fc, type=piece[1], color=piece[0];
     if (type==='P') { const dir=color==='w'?-1:1; return Math.abs(dc)===1&&dr===dir; }
     if (type==='N') return (Math.abs(dr)===2&&Math.abs(dc)===1)||(Math.abs(dr)===1&&Math.abs(dc)===2);
@@ -255,8 +231,7 @@ function pathClear(fr,fc,tr,tc) {
 }
 
 function isValidMove(fr,fc,tr,tc) {
-    const piece=board[fr][fc];
-    if (!piece) return false;
+    const piece=board[fr][fc]; if (!piece) return false;
     const target=board[tr][tc];
     if (target&&target[0]===piece[0]) return false;
     const dr=tr-fr, dc=tc-fc, type=piece[1], color=piece[0];
@@ -303,19 +278,17 @@ function updateCaptured() {
 
 function updateMoves() {
     const el=document.getElementById('moves-list');
-    el.innerHTML=movesList.map((m,i)=>
+    el.innerHTML=movesList.map(m=>
         `<span class="move-item ${m.color==='w'?'white-move':'black-move'}">${m.text}</span>`
     ).join('');
     el.scrollLeft=el.scrollWidth;
 }
 
 function renderBoard() {
-    const el=document.getElementById('board');
-    el.innerHTML='';
+    const el=document.getElementById('board'); el.innerHTML='';
     const inCheck=isInCheck(turn);
     const kingPos=inCheck?findKing(turn):null;
     const legalMoves=selected?getLegalMoves(selected.r,selected.c):[];
-
     for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
         const cell=document.createElement('div');
         cell.className='cell '+((r+c)%2===0?'white':'black');
@@ -341,9 +314,9 @@ function onCell(r,c) {
     const piece=board[r][c];
     if (selected) {
         if (selected.r===r&&selected.c===c) { selected=null; renderBoard(); return; }
-        if (piece&&piece[0]===turn) { selected={r,c}; renderBoard(); return; }
+        if (piece&&piece[0]===turn) { selected={r,c}; playSound('select'); renderBoard(); return; }
         if (isValidMove(selected.r,selected.c,r,c)) {
-            makeMove(selected.r,selected.c,r,c,true);
+            makeMove(selected.r,selected.c,r,c);
             selected=null;
             if (!gameOver) setTimeout(aiMove,600);
         } else {
@@ -351,11 +324,11 @@ function onCell(r,c) {
             selected=null; renderBoard();
         }
     } else {
-        if (piece&&piece[0]===turn) { selected={r,c}; renderBoard(); }
+        if (piece&&piece[0]===turn) { selected={r,c}; playSound('select'); renderBoard(); }
     }
 }
 
-function makeMove(fr,fc,tr,tc,isHuman) {
+function makeMove(fr,fc,tr,tc) {
     const piece=board[fr][fc];
     const captured=board[tr][tc];
     const algMove=toAlg(fr,fc)+'-'+toAlg(tr,tc);
@@ -363,6 +336,9 @@ function makeMove(fr,fc,tr,tc,isHuman) {
     if (captured) {
         if (turn==='w') whiteCaptured.push(captured);
         else blackCaptured.push(captured);
+        playSound('capture');
+    } else {
+        playSound('move');
     }
 
     if (piece==='wP'&&tr===0) board[tr][tc]='wQ';
@@ -370,25 +346,24 @@ function makeMove(fr,fc,tr,tc,isHuman) {
     else board[tr][tc]=piece;
     board[fr][fc]=null;
     lastMove={fr,fc,tr,tc};
-
     movesList.push({color:turn, text:algMove});
     turn=turn==='w'?'b':'w';
 
     const inCheck=isInCheck(turn);
     const hasMove=hasLegalMoves(turn);
-
     updateCaptured(); updateMoves();
 
     if (!hasMove) {
         renderBoard();
         gameOver=true;
+        playSound('win');
         if (inCheck) setStatus(turn==='b'?"🎉 Siz yutdingiz! Shoh mat!":"🤖 AI yutdi! Shoh mat!",'win');
         else setStatus("🤝 Pat! Durang!",'win');
         return;
     }
 
     renderBoard();
-    if (inCheck) setStatus("⚠️ Shoh ostida! Himoya qiling!",'check');
+    if (inCheck) { playSound('check'); setStatus("⚠️ Shoh ostida! Himoya qiling!",'check'); }
     else setStatus(turn==='w'?"Sizning navbatingiz (Oq)":"🤖 AI o'ylayapti...",'');
 }
 
@@ -408,8 +383,8 @@ function aiMove() {
             if (val>bestVal) { bestVal=val; best={fr,fc,tr,tc}; }
         }
     }
-    if (best) makeMove(best.fr,best.fc,best.tr,best.tc,false);
-    else { gameOver=true; setStatus("🎉 Siz yutdingiz!",'win'); }
+    if (best) makeMove(best.fr,best.fc,best.tr,best.tc);
+    else { gameOver=true; setStatus("🎉 Siz yutdingiz!",'win'); playSound('win'); }
 }
 
 function pieceValue(p) { return ({'P':1,'N':3,'B':3,'R':5,'Q':9,'K':100})[p[1]]||0; }
