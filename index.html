@@ -8,84 +8,178 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #1a1a2e;
+            background: #0f0f1a;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             min-height: 100vh;
             font-family: Arial, sans-serif;
             color: white;
+            padding: 10px;
         }
-        h2 { margin-bottom: 10px; font-size: 22px; }
+        h2 { margin-bottom: 6px; font-size: 20px; }
         #status {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             font-size: 14px;
             color: #aaa;
-            min-height: 20px;
             text-align: center;
+            min-height: 20px;
         }
-        #status.check { color: #ff6b6b; font-weight: bold; font-size: 16px; }
+        #status.check { color: #ff6b6b; font-weight: bold; }
         #status.win { color: #51cf66; font-weight: bold; font-size: 18px; }
+        #board-wrap {
+            display: flex;
+            align-items: center;
+        }
+        #row-labels {
+            display: flex;
+            flex-direction: column;
+            margin-right: 4px;
+        }
+        .row-label {
+            height: 46px;
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: #888;
+        }
+        #board-col {
+            display: flex;
+            flex-direction: column;
+        }
         #board {
             display: grid;
-            grid-template-columns: repeat(8, 40px);
-            grid-template-rows: repeat(8, 40px);
+            grid-template-columns: repeat(8, 46px);
+            grid-template-rows: repeat(8, 46px);
             border: 3px solid #f0a500;
             border-radius: 4px;
             overflow: hidden;
         }
+        #col-labels {
+            display: flex;
+            margin-top: 4px;
+            padding-left: 2px;
+        }
+        .col-label {
+            width: 46px;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+        }
         .cell {
-            width: 40px;
-            height: 40px;
+            width: 46px;
+            height: 46px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
+            font-size: 30px;
             cursor: pointer;
+            position: relative;
             transition: background 0.15s;
         }
         .white { background: #f0d9b5; }
         .black { background: #b58863; }
         .selected { background: #7fc97f !important; }
         .check-king { background: #ff6b6b !important; }
-        .possible { background: rgba(127,201,127,0.5) !important; }
-        #info {
-            margin-top: 12px;
+        .possible::after {
+            content: '';
+            position: absolute;
+            width: 14px; height: 14px;
+            background: rgba(0,0,0,0.25);
+            border-radius: 50%;
+        }
+        .capture-possible { box-shadow: inset 0 0 0 4px rgba(0,0,0,0.3); }
+        .last-move { background: rgba(255,215,0,0.4) !important; }
+
+        #moves-log {
+            margin-top: 10px;
+            width: 100%;
+            max-width: 380px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 8px;
+            max-height: 100px;
+            overflow-y: auto;
             font-size: 13px;
-            color: #ccc;
+        }
+        #moves-log h4 { color: #f0a500; margin-bottom: 4px; font-size: 13px; }
+        #moves-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .move-item {
+            background: #2a2a3e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .move-item.white-move { color: #fff; }
+        .move-item.black-move { color: #f0a500; }
+
+        #captured {
+            margin-top: 8px;
+            width: 100%;
+            max-width: 380px;
+            font-size: 13px;
             text-align: center;
         }
+        #captured span { font-size: 18px; }
+
         #restart {
-            margin-top: 14px;
+            margin-top: 10px;
             padding: 10px 30px;
             background: #f0a500;
             color: #1a1a2e;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
-        }
-        #coords {
-            display: flex;
-            margin-top: 4px;
-            font-size: 11px;
-            color: #888;
-            width: 320px;
-            justify-content: space-around;
         }
     </style>
 </head>
 <body>
     <h2>♟️ Shahmat</h2>
     <div id="status">Sizning navbatingiz (Oq)</div>
-    <div id="board"></div>
-    <div id="coords">
-        <span>a</span><span>b</span><span>c</span><span>d</span>
-        <span>e</span><span>f</span><span>g</span><span>h</span>
+
+    <div id="board-wrap">
+        <div id="row-labels">
+            <div class="row-label">8</div>
+            <div class="row-label">7</div>
+            <div class="row-label">6</div>
+            <div class="row-label">5</div>
+            <div class="row-label">4</div>
+            <div class="row-label">3</div>
+            <div class="row-label">2</div>
+            <div class="row-label">1</div>
+        </div>
+        <div id="board-col">
+            <div id="board"></div>
+            <div id="col-labels">
+                <div class="col-label">a</div>
+                <div class="col-label">b</div>
+                <div class="col-label">c</div>
+                <div class="col-label">d</div>
+                <div class="col-label">e</div>
+                <div class="col-label">f</div>
+                <div class="col-label">g</div>
+                <div class="col-label">h</div>
+            </div>
+        </div>
     </div>
-    <div id="info">Donani bosing → keyin joyni bosing</div>
+
+    <div id="captured">
+        <div>Oq oldi: <span id="white-captured"></span></div>
+        <div>Qora oldi: <span id="black-captured"></span></div>
+    </div>
+
+    <div id="moves-log">
+        <h4>📋 Yurishlar tarixi</h4>
+        <div id="moves-list"></div>
+    </div>
+
     <button id="restart" onclick="initGame()">🔄 Qayta boshlash</button>
 
 <script>
@@ -93,12 +187,16 @@ const PIECES = {
     'wK':'♔','wQ':'♕','wR':'♖','wB':'♗','wN':'♘','wP':'♙',
     'bK':'♚','bQ':'♛','bR':'♜','bB':'♝','bN':'♞','bP':'♟'
 };
+const FILES = ['a','b','c','d','e','f','g','h'];
 
-let board = [], selected = null, turn = 'w', gameOver = false;
+let board=[], selected=null, turn='w', gameOver=false;
+let movesList=[], whiteCaptured=[], blackCaptured=[];
+let lastMove=null;
 
 function initGame() {
-    turn = 'w'; gameOver = false; selected = null;
-    board = [
+    turn='w'; gameOver=false; selected=null;
+    movesList=[]; whiteCaptured=[]; blackCaptured=[]; lastMove=null;
+    board=[
         ['bR','bN','bB','bQ','bK','bB','bN','bR'],
         ['bP','bP','bP','bP','bP','bP','bP','bP'],
         [null,null,null,null,null,null,null,null],
@@ -108,9 +206,11 @@ function initGame() {
         ['wP','wP','wP','wP','wP','wP','wP','wP'],
         ['wR','wN','wB','wQ','wK','wB','wN','wR'],
     ];
-    setStatus("Sizning navbatingiz (Oq)", "");
-    renderBoard();
+    setStatus("Sizning navbatingiz (Oq)",'');
+    updateCaptured(); updateMoves(); renderBoard();
 }
+
+function toAlg(r,c) { return FILES[c]+(8-r); }
 
 function findKing(color) {
     for (let r=0;r<8;r++) for (let c=0;c<8;c++)
@@ -118,24 +218,11 @@ function findKing(color) {
     return null;
 }
 
-function isUnderAttack(r, c, byColor) {
-    for (let fr=0;fr<8;fr++) for (let fc=0;fc<8;fc++) {
-        const p = board[fr][fc];
-        if (!p || p[0]!==byColor) continue;
-        if (canAttack(fr,fc,r,c)) return true;
-    }
-    return false;
-}
-
 function canAttack(fr,fc,tr,tc) {
-    const piece = board[fr][fc];
+    const piece=board[fr][fc];
     if (!piece) return false;
-    const dr=tr-fr, dc=tc-fc;
-    const type=piece[1], color=piece[0];
-    if (type==='P') {
-        const dir=color==='w'?-1:1;
-        return Math.abs(dc)===1 && dr===dir;
-    }
+    const dr=tr-fr, dc=tc-fc, type=piece[1], color=piece[0];
+    if (type==='P') { const dir=color==='w'?-1:1; return Math.abs(dc)===1&&dr===dir; }
     if (type==='N') return (Math.abs(dr)===2&&Math.abs(dc)===1)||(Math.abs(dr)===1&&Math.abs(dc)===2);
     if (type==='K') return Math.abs(dr)<=1&&Math.abs(dc)<=1;
     if (type==='R') return (dr===0||dc===0)&&pathClear(fr,fc,tr,tc);
@@ -145,33 +232,37 @@ function canAttack(fr,fc,tr,tc) {
 }
 
 function isInCheck(color) {
-    const king = findKing(color);
-    if (!king) return false;
-    const enemy = color==='w'?'b':'w';
-    return isUnderAttack(king.r, king.c, enemy);
+    const king=findKing(color); if (!king) return false;
+    const enemy=color==='w'?'b':'w';
+    for (let r=0;r<8;r++) for (let c=0;c<8;c++)
+        if (board[r][c]&&board[r][c][0]===enemy&&canAttack(r,c,king.r,king.c)) return true;
+    return false;
 }
 
 function wouldBeInCheck(fr,fc,tr,tc,color) {
-    const saved = board[tr][tc];
-    board[tr][tc] = board[fr][fc];
-    board[fr][fc] = null;
-    const inCheck = isInCheck(color);
-    board[fr][fc] = board[tr][tc];
-    board[tr][tc] = saved;
+    const saved=board[tr][tc];
+    board[tr][tc]=board[fr][fc]; board[fr][fc]=null;
+    const inCheck=isInCheck(color);
+    board[fr][fc]=board[tr][tc]; board[tr][tc]=saved;
     return inCheck;
 }
 
+function pathClear(fr,fc,tr,tc) {
+    const dr=Math.sign(tr-fr), dc=Math.sign(tc-fc);
+    let r=fr+dr, c=fc+dc;
+    while (r!==tr||c!==tc) { if (board[r][c]) return false; r+=dr; c+=dc; }
+    return true;
+}
+
 function isValidMove(fr,fc,tr,tc) {
-    const piece = board[fr][fc];
+    const piece=board[fr][fc];
     if (!piece) return false;
-    const target = board[tr][tc];
-    if (target && target[0]===piece[0]) return false;
-    const dr=tr-fr, dc=tc-fc;
-    const type=piece[1], color=piece[0];
-    let valid = false;
+    const target=board[tr][tc];
+    if (target&&target[0]===piece[0]) return false;
+    const dr=tr-fr, dc=tc-fc, type=piece[1], color=piece[0];
+    let valid=false;
     if (type==='P') {
-        const dir=color==='w'?-1:1;
-        const startRow=color==='w'?6:1;
+        const dir=color==='w'?-1:1, startRow=color==='w'?6:1;
         if (dc===0&&dr===dir&&!board[tr][tc]) valid=true;
         else if (dc===0&&dr===2*dir&&fr===startRow&&!board[fr+dir][fc]&&!board[tr][tc]) valid=true;
         else if (Math.abs(dc)===1&&dr===dir&&board[tr][tc]&&board[tr][tc][0]!==color) valid=true;
@@ -193,39 +284,53 @@ function hasLegalMoves(color) {
     return false;
 }
 
-function pathClear(fr,fc,tr,tc) {
-    const dr=Math.sign(tr-fr), dc=Math.sign(tc-fc);
-    let r=fr+dr, c=fc+dc;
-    while (r!==tr||c!==tc) {
-        if (board[r][c]) return false;
-        r+=dr; c+=dc;
-    }
-    return true;
+function getLegalMoves(fr,fc) {
+    const moves=[];
+    for (let tr=0;tr<8;tr++) for (let tc=0;tc<8;tc++)
+        if (isValidMove(fr,fc,tr,tc)) moves.push({r:tr,c:tc});
+    return moves;
 }
 
-function setStatus(msg, cls) {
-    const el = document.getElementById('status');
-    el.textContent = msg;
-    el.className = cls || '';
+function setStatus(msg,cls) {
+    const el=document.getElementById('status');
+    el.textContent=msg; el.className=cls||'';
+}
+
+function updateCaptured() {
+    document.getElementById('white-captured').textContent=whiteCaptured.map(p=>PIECES[p]).join('');
+    document.getElementById('black-captured').textContent=blackCaptured.map(p=>PIECES[p]).join('');
+}
+
+function updateMoves() {
+    const el=document.getElementById('moves-list');
+    el.innerHTML=movesList.map((m,i)=>
+        `<span class="move-item ${m.color==='w'?'white-move':'black-move'}">${m.text}</span>`
+    ).join('');
+    el.scrollLeft=el.scrollWidth;
 }
 
 function renderBoard() {
-    const el = document.getElementById('board');
-    el.innerHTML = '';
-    const enemy = turn==='w'?'b':'w';
-    const inCheck = isInCheck(turn);
-    const kingPos = inCheck ? findKing(turn) : null;
+    const el=document.getElementById('board');
+    el.innerHTML='';
+    const inCheck=isInCheck(turn);
+    const kingPos=inCheck?findKing(turn):null;
+    const legalMoves=selected?getLegalMoves(selected.r,selected.c):[];
+
     for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
-        const cell = document.createElement('div');
-        cell.className = 'cell '+((r+c)%2===0?'white':'black');
-        const piece = board[r][c];
+        const cell=document.createElement('div');
+        cell.className='cell '+((r+c)%2===0?'white':'black');
+        const piece=board[r][c];
         if (piece) {
-            cell.textContent = PIECES[piece]||'';
-            cell.style.color = piece[0]==='w'?'#fff':'#1a1a1a';
-            cell.style.textShadow = piece[0]==='w'?'1px 1px 2px #000':'1px 1px 2px #fff';
+            cell.textContent=PIECES[piece]||'';
+            cell.style.color=piece[0]==='w'?'#fff':'#1a1a1a';
+            cell.style.textShadow=piece[0]==='w'?'1px 1px 2px #000':'1px 1px 2px #fff';
         }
+        if (lastMove&&((lastMove.fr===r&&lastMove.fc===c)||(lastMove.tr===r&&lastMove.tc===c)))
+            cell.classList.add('last-move');
         if (selected&&selected.r===r&&selected.c===c) cell.classList.add('selected');
         if (kingPos&&kingPos.r===r&&kingPos.c===c) cell.classList.add('check-king');
+        const lm=legalMoves.find(m=>m.r===r&&m.c===c);
+        if (lm) { if (piece) cell.classList.add('capture-possible'); else cell.classList.add('possible'); }
         cell.onclick=()=>onCell(r,c);
         el.appendChild(cell);
     }
@@ -233,16 +338,16 @@ function renderBoard() {
 
 function onCell(r,c) {
     if (gameOver) return;
-    const piece = board[r][c];
+    const piece=board[r][c];
     if (selected) {
         if (selected.r===r&&selected.c===c) { selected=null; renderBoard(); return; }
         if (piece&&piece[0]===turn) { selected={r,c}; renderBoard(); return; }
         if (isValidMove(selected.r,selected.c,r,c)) {
-            makeMove(selected.r,selected.c,r,c);
+            makeMove(selected.r,selected.c,r,c,true);
             selected=null;
-            if (!gameOver) setTimeout(aiMove,500);
+            if (!gameOver) setTimeout(aiMove,600);
         } else {
-            setStatus("❌ Bu yurish mumkin emas!");
+            setStatus("❌ Bu yurish mumkin emas!",'');
             selected=null; renderBoard();
         }
     } else {
@@ -250,35 +355,41 @@ function onCell(r,c) {
     }
 }
 
-function makeMove(fr,fc,tr,tc) {
-    if (board[fr][fc]==='wP'&&tr===0) board[tr][tc]='wQ';
-    else if (board[fr][fc]==='bP'&&tr===7) board[tr][tc]='bQ';
-    else board[tr][tc]=board[fr][fc];
+function makeMove(fr,fc,tr,tc,isHuman) {
+    const piece=board[fr][fc];
+    const captured=board[tr][tc];
+    const algMove=toAlg(fr,fc)+'-'+toAlg(tr,tc);
+
+    if (captured) {
+        if (turn==='w') whiteCaptured.push(captured);
+        else blackCaptured.push(captured);
+    }
+
+    if (piece==='wP'&&tr===0) board[tr][tc]='wQ';
+    else if (piece==='bP'&&tr===7) board[tr][tc]='bQ';
+    else board[tr][tc]=piece;
     board[fr][fc]=null;
+    lastMove={fr,fc,tr,tc};
+
+    movesList.push({color:turn, text:algMove});
     turn=turn==='w'?'b':'w';
 
-    const inCheck = isInCheck(turn);
-    const hasMove = hasLegalMoves(turn);
+    const inCheck=isInCheck(turn);
+    const hasMove=hasLegalMoves(turn);
+
+    updateCaptured(); updateMoves();
 
     if (!hasMove) {
         renderBoard();
-        if (inCheck) {
-            gameOver=true;
-            const winner = turn==='w'?'🤖 AI':'🎉 Siz';
-            setStatus(winner+' yutdi! Shoh mat!','win');
-        } else {
-            gameOver=true;
-            setStatus("🤝 Pat! Durang!",'win');
-        }
+        gameOver=true;
+        if (inCheck) setStatus(turn==='b'?"🎉 Siz yutdingiz! Shoh mat!":"🤖 AI yutdi! Shoh mat!",'win');
+        else setStatus("🤝 Pat! Durang!",'win');
         return;
     }
 
     renderBoard();
-    if (inCheck) {
-        setStatus("⚠️ Shoh ostida! Himoya qiling!",'check');
-    } else {
-        setStatus(turn==='w'?"Sizning navbatingiz (Oq)":"🤖 AI o'ylayapti...",'');
-    }
+    if (inCheck) setStatus("⚠️ Shoh ostida! Himoya qiling!",'check');
+    else setStatus(turn==='w'?"Sizning navbatingiz (Oq)":"🤖 AI o'ylayapti...",'');
 }
 
 function aiMove() {
@@ -288,8 +399,7 @@ function aiMove() {
         if (!board[fr][fc]||board[fr][fc][0]!=='b') continue;
         for (let tr=0;tr<8;tr++) for (let tc=0;tc<8;tc++) {
             if (!isValidMove(fr,fc,tr,tc)) continue;
-            let val = board[tr][tc]?pieceValue(board[tr][tc]):0;
-            // Shoh qo'yish uchun bonus
+            let val=board[tr][tc]?pieceValue(board[tr][tc]):0;
             const saved=board[tr][tc];
             board[tr][tc]=board[fr][fc]; board[fr][fc]=null;
             if (isInCheck('w')) val+=2;
@@ -298,13 +408,11 @@ function aiMove() {
             if (val>bestVal) { bestVal=val; best={fr,fc,tr,tc}; }
         }
     }
-    if (best) makeMove(best.fr,best.fc,best.tr,best.tc);
+    if (best) makeMove(best.fr,best.fc,best.tr,best.tc,false);
     else { gameOver=true; setStatus("🎉 Siz yutdingiz!",'win'); }
 }
 
-function pieceValue(p) {
-    return ({'P':1,'N':3,'B':3,'R':5,'Q':9,'K':100})[p[1]]||0;
-}
+function pieceValue(p) { return ({'P':1,'N':3,'B':3,'R':5,'Q':9,'K':100})[p[1]]||0; }
 
 initGame();
 </script>
