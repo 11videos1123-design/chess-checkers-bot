@@ -23,7 +23,10 @@
             font-size: 14px;
             color: #aaa;
             min-height: 20px;
+            text-align: center;
         }
+        #status.check { color: #ff6b6b; font-weight: bold; font-size: 16px; }
+        #status.win { color: #51cf66; font-weight: bold; font-size: 18px; }
         #board {
             display: grid;
             grid-template-columns: repeat(8, 40px);
@@ -40,10 +43,13 @@
             justify-content: center;
             font-size: 26px;
             cursor: pointer;
+            transition: background 0.15s;
         }
         .white { background: #f0d9b5; }
         .black { background: #b58863; }
         .selected { background: #7fc97f !important; }
+        .check-king { background: #ff6b6b !important; }
+        .possible { background: rgba(127,201,127,0.5) !important; }
         #info {
             margin-top: 12px;
             font-size: 13px;
@@ -61,12 +67,24 @@
             font-weight: bold;
             cursor: pointer;
         }
+        #coords {
+            display: flex;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #888;
+            width: 320px;
+            justify-content: space-around;
+        }
     </style>
 </head>
 <body>
     <h2>♟️ Shahmat</h2>
     <div id="status">Sizning navbatingiz (Oq)</div>
     <div id="board"></div>
+    <div id="coords">
+        <span>a</span><span>b</span><span>c</span><span>d</span>
+        <span>e</span><span>f</span><span>g</span><span>h</span>
+    </div>
     <div id="info">Donani bosing → keyin joyni bosing</div>
     <button id="restart" onclick="initGame()">🔄 Qayta boshlash</button>
 
@@ -76,15 +94,10 @@ const PIECES = {
     'bK':'♚','bQ':'♛','bR':'♜','bB':'♝','bN':'♞','bP':'♟'
 };
 
-let board = [];
-let selected = null;
-let turn = 'w';
-let gameOver = false;
+let board = [], selected = null, turn = 'w', gameOver = false;
 
 function initGame() {
-    turn = 'w';
-    gameOver = false;
-    selected = null;
+    turn = 'w'; gameOver = false; selected = null;
     board = [
         ['bR','bN','bB','bQ','bK','bB','bN','bR'],
         ['bP','bP','bP','bP','bP','bP','bP','bP'],
@@ -95,141 +108,202 @@ function initGame() {
         ['wP','wP','wP','wP','wP','wP','wP','wP'],
         ['wR','wN','wB','wQ','wK','wB','wN','wR'],
     ];
-    setStatus("Sizning navbatingiz (Oq)");
+    setStatus("Sizning navbatingiz (Oq)", "");
     renderBoard();
 }
 
-function renderBoard() {
-    const el = document.getElementById('board');
-    el.innerHTML = '';
-    for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell ' + ((r+c)%2===0 ? 'white' : 'black');
-            cell.dataset.r = r;
-            cell.dataset.c = c;
-            const piece = board[r][c];
-            if (piece) {
-                cell.textContent = PIECES[piece] || '';
-                cell.style.color = piece[0]==='w' ? '#fff' : '#1a1a1a';
-                cell.style.textShadow = piece[0]==='w' ? '1px 1px 2px #000' : '1px 1px 2px #fff';
-            }
-            if (selected && selected.r===r && selected.c===c) {
-                cell.classList.add('selected');
-            }
-            cell.onclick = () => onCell(r, c);
-            el.appendChild(cell);
-        }
-    }
+function findKing(color) {
+    for (let r=0;r<8;r++) for (let c=0;c<8;c++)
+        if (board[r][c]===color+'K') return {r,c};
+    return null;
 }
 
-function setStatus(msg) {
-    document.getElementById('status').textContent = msg;
+function isUnderAttack(r, c, byColor) {
+    for (let fr=0;fr<8;fr++) for (let fc=0;fc<8;fc++) {
+        const p = board[fr][fc];
+        if (!p || p[0]!==byColor) continue;
+        if (canAttack(fr,fc,r,c)) return true;
+    }
+    return false;
 }
 
-function onCell(r, c) {
-    if (gameOver) return;
-    const piece = board[r][c];
-    if (selected) {
-        if (selected.r===r && selected.c===c) {
-            selected = null;
-            renderBoard();
-            return;
-        }
-        if (piece && piece[0]===turn) {
-            selected = {r, c};
-            renderBoard();
-            return;
-        }
-        if (isValidMove(selected.r, selected.c, r, c)) {
-            makeMove(selected.r, selected.c, r, c);
-            selected = null;
-            if (!gameOver) setTimeout(aiMove, 500);
-        } else {
-            setStatus("❌ Bu yurish mumkin emas!");
-            selected = null;
-            renderBoard();
-        }
-    } else {
-        if (piece && piece[0]===turn) {
-            selected = {r, c};
-            renderBoard();
-        }
+function canAttack(fr,fc,tr,tc) {
+    const piece = board[fr][fc];
+    if (!piece) return false;
+    const dr=tr-fr, dc=tc-fc;
+    const type=piece[1], color=piece[0];
+    if (type==='P') {
+        const dir=color==='w'?-1:1;
+        return Math.abs(dc)===1 && dr===dir;
     }
+    if (type==='N') return (Math.abs(dr)===2&&Math.abs(dc)===1)||(Math.abs(dr)===1&&Math.abs(dc)===2);
+    if (type==='K') return Math.abs(dr)<=1&&Math.abs(dc)<=1;
+    if (type==='R') return (dr===0||dc===0)&&pathClear(fr,fc,tr,tc);
+    if (type==='B') return Math.abs(dr)===Math.abs(dc)&&pathClear(fr,fc,tr,tc);
+    if (type==='Q') return ((dr===0||dc===0)||Math.abs(dr)===Math.abs(dc))&&pathClear(fr,fc,tr,tc);
+    return false;
 }
 
-function makeMove(fr, fc, tr, tc) {
-    const captured = board[tr][tc];
-    if (captured && captured[1]==='K') {
-        board[tr][tc] = board[fr][fc];
-        board[fr][fc] = null;
-        gameOver = true;
-        renderBoard();
-        setStatus(turn==='w' ? "🎉 Siz yutdingiz!" : "🤖 AI yutdi!");
-        return;
-    }
-    if (board[fr][fc]==='wP' && tr===0) board[tr][tc] = 'wQ';
-    else if (board[fr][fc]==='bP' && tr===7) board[tr][tc] = 'bQ';
-    else board[tr][tc] = board[fr][fc];
+function isInCheck(color) {
+    const king = findKing(color);
+    if (!king) return false;
+    const enemy = color==='w'?'b':'w';
+    return isUnderAttack(king.r, king.c, enemy);
+}
+
+function wouldBeInCheck(fr,fc,tr,tc,color) {
+    const saved = board[tr][tc];
+    board[tr][tc] = board[fr][fc];
     board[fr][fc] = null;
-    turn = turn==='w' ? 'b' : 'w';
-    renderBoard();
-    if (!gameOver) setStatus(turn==='w' ? "Sizning navbatingiz (Oq)" : "🤖 AI o'ylayapti...");
+    const inCheck = isInCheck(color);
+    board[fr][fc] = board[tr][tc];
+    board[tr][tc] = saved;
+    return inCheck;
 }
 
-function isValidMove(fr, fc, tr, tc) {
+function isValidMove(fr,fc,tr,tc) {
     const piece = board[fr][fc];
     if (!piece) return false;
     const target = board[tr][tc];
     if (target && target[0]===piece[0]) return false;
-    const dr = tr-fr, dc = tc-fc;
-    const type = piece[1];
-    const color = piece[0];
+    const dr=tr-fr, dc=tc-fc;
+    const type=piece[1], color=piece[0];
+    let valid = false;
     if (type==='P') {
-        const dir = color==='w' ? -1 : 1;
-        const startRow = color==='w' ? 6 : 1;
-        if (dc===0 && dr===dir && !board[tr][tc]) return true;
-        if (dc===0 && dr===2*dir && fr===startRow && !board[fr+dir][fc] && !board[tr][tc]) return true;
-        if (Math.abs(dc)===1 && dr===dir && board[tr][tc] && board[tr][tc][0]!==color) return true;
-        return false;
+        const dir=color==='w'?-1:1;
+        const startRow=color==='w'?6:1;
+        if (dc===0&&dr===dir&&!board[tr][tc]) valid=true;
+        else if (dc===0&&dr===2*dir&&fr===startRow&&!board[fr+dir][fc]&&!board[tr][tc]) valid=true;
+        else if (Math.abs(dc)===1&&dr===dir&&board[tr][tc]&&board[tr][tc][0]!==color) valid=true;
+    } else if (type==='N') valid=(Math.abs(dr)===2&&Math.abs(dc)===1)||(Math.abs(dr)===1&&Math.abs(dc)===2);
+    else if (type==='K') valid=Math.abs(dr)<=1&&Math.abs(dc)<=1;
+    else if (type==='R') valid=(dr===0||dc===0)&&pathClear(fr,fc,tr,tc);
+    else if (type==='B') valid=Math.abs(dr)===Math.abs(dc)&&pathClear(fr,fc,tr,tc);
+    else if (type==='Q') valid=((dr===0||dc===0)||Math.abs(dr)===Math.abs(dc))&&pathClear(fr,fc,tr,tc);
+    if (!valid) return false;
+    return !wouldBeInCheck(fr,fc,tr,tc,color);
+}
+
+function hasLegalMoves(color) {
+    for (let fr=0;fr<8;fr++) for (let fc=0;fc<8;fc++) {
+        if (!board[fr][fc]||board[fr][fc][0]!==color) continue;
+        for (let tr=0;tr<8;tr++) for (let tc=0;tc<8;tc++)
+            if (isValidMove(fr,fc,tr,tc)) return true;
     }
-    if (type==='N') return (Math.abs(dr)===2&&Math.abs(dc)===1)||(Math.abs(dr)===1&&Math.abs(dc)===2);
-    if (type==='K') return Math.abs(dr)<=1 && Math.abs(dc)<=1;
-    if (type==='R') return (dr===0||dc===0) && pathClear(fr,fc,tr,tc);
-    if (type==='B') return Math.abs(dr)===Math.abs(dc) && pathClear(fr,fc,tr,tc);
-    if (type==='Q') return ((dr===0||dc===0)||Math.abs(dr)===Math.abs(dc)) && pathClear(fr,fc,tr,tc);
     return false;
 }
 
-function pathClear(fr, fc, tr, tc) {
-    const dr = Math.sign(tr-fr), dc = Math.sign(tc-fc);
+function pathClear(fr,fc,tr,tc) {
+    const dr=Math.sign(tr-fr), dc=Math.sign(tc-fc);
     let r=fr+dr, c=fc+dc;
-    while (r!==tr || c!==tc) {
+    while (r!==tr||c!==tc) {
         if (board[r][c]) return false;
         r+=dr; c+=dc;
     }
     return true;
 }
 
+function setStatus(msg, cls) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = cls || '';
+}
+
+function renderBoard() {
+    const el = document.getElementById('board');
+    el.innerHTML = '';
+    const enemy = turn==='w'?'b':'w';
+    const inCheck = isInCheck(turn);
+    const kingPos = inCheck ? findKing(turn) : null;
+    for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell '+((r+c)%2===0?'white':'black');
+        const piece = board[r][c];
+        if (piece) {
+            cell.textContent = PIECES[piece]||'';
+            cell.style.color = piece[0]==='w'?'#fff':'#1a1a1a';
+            cell.style.textShadow = piece[0]==='w'?'1px 1px 2px #000':'1px 1px 2px #fff';
+        }
+        if (selected&&selected.r===r&&selected.c===c) cell.classList.add('selected');
+        if (kingPos&&kingPos.r===r&&kingPos.c===c) cell.classList.add('check-king');
+        cell.onclick=()=>onCell(r,c);
+        el.appendChild(cell);
+    }
+}
+
+function onCell(r,c) {
+    if (gameOver) return;
+    const piece = board[r][c];
+    if (selected) {
+        if (selected.r===r&&selected.c===c) { selected=null; renderBoard(); return; }
+        if (piece&&piece[0]===turn) { selected={r,c}; renderBoard(); return; }
+        if (isValidMove(selected.r,selected.c,r,c)) {
+            makeMove(selected.r,selected.c,r,c);
+            selected=null;
+            if (!gameOver) setTimeout(aiMove,500);
+        } else {
+            setStatus("❌ Bu yurish mumkin emas!");
+            selected=null; renderBoard();
+        }
+    } else {
+        if (piece&&piece[0]===turn) { selected={r,c}; renderBoard(); }
+    }
+}
+
+function makeMove(fr,fc,tr,tc) {
+    if (board[fr][fc]==='wP'&&tr===0) board[tr][tc]='wQ';
+    else if (board[fr][fc]==='bP'&&tr===7) board[tr][tc]='bQ';
+    else board[tr][tc]=board[fr][fc];
+    board[fr][fc]=null;
+    turn=turn==='w'?'b':'w';
+
+    const inCheck = isInCheck(turn);
+    const hasMove = hasLegalMoves(turn);
+
+    if (!hasMove) {
+        renderBoard();
+        if (inCheck) {
+            gameOver=true;
+            const winner = turn==='w'?'🤖 AI':'🎉 Siz';
+            setStatus(winner+' yutdi! Shoh mat!','win');
+        } else {
+            gameOver=true;
+            setStatus("🤝 Pat! Durang!",'win');
+        }
+        return;
+    }
+
+    renderBoard();
+    if (inCheck) {
+        setStatus("⚠️ Shoh ostida! Himoya qiling!",'check');
+    } else {
+        setStatus(turn==='w'?"Sizning navbatingiz (Oq)":"🤖 AI o'ylayapti...",'');
+    }
+}
+
 function aiMove() {
     if (gameOver) return;
-    let best = null;
+    let best=null, bestVal=-9999;
     for (let fr=0;fr<8;fr++) for (let fc=0;fc<8;fc++) {
-        if (!board[fr][fc] || board[fr][fc][0]!=='b') continue;
+        if (!board[fr][fc]||board[fr][fc][0]!=='b') continue;
         for (let tr=0;tr<8;tr++) for (let tc=0;tc<8;tc++) {
-            if (isValidMove(fr,fc,tr,tc)) {
-                const val = board[tr][tc] ? pieceValue(board[tr][tc]) : 0;
-                if (!best || val > best.val) best = {fr,fc,tr,tc,val};
-            }
+            if (!isValidMove(fr,fc,tr,tc)) continue;
+            let val = board[tr][tc]?pieceValue(board[tr][tc]):0;
+            // Shoh qo'yish uchun bonus
+            const saved=board[tr][tc];
+            board[tr][tc]=board[fr][fc]; board[fr][fc]=null;
+            if (isInCheck('w')) val+=2;
+            if (!hasLegalMoves('w')) val+=100;
+            board[fr][fc]=board[tr][tc]; board[tr][tc]=saved;
+            if (val>bestVal) { bestVal=val; best={fr,fc,tr,tc}; }
         }
     }
-    if (best) makeMove(best.fr, best.fc, best.tr, best.tc);
-    else { gameOver=true; setStatus("🎉 Siz yutdingiz!"); }
+    if (best) makeMove(best.fr,best.fc,best.tr,best.tc);
+    else { gameOver=true; setStatus("🎉 Siz yutdingiz!",'win'); }
 }
 
 function pieceValue(p) {
-    const v = {'P':1,'N':3,'B':3,'R':5,'Q':9,'K':100};
-    return v[p[1]] || 0;
+    return ({'P':1,'N':3,'B':3,'R':5,'Q':9,'K':100})[p[1]]||0;
 }
 
 initGame();
